@@ -5,8 +5,9 @@
  * @author Felipe Pieretti Umpierre <felipeumpierre[at]hotmail[dot]com>
  */
 
-use Hangman\GameConfirgurations;
+use Hangman\GameConfigurations;
 use Hangman\Word;
+use Illuminate\Support\Facades\Input;
 
 /*
  * --------------------------------------------------------------
@@ -20,12 +21,16 @@ Route::group( [ "prefix" => "hangman" ], function() {
 	 * Get - Overview
 	 * --------------------------------------------------------------
 	 *
+	 * This Route will return all the games saved.
+	 *
 	 */
     Route::get( "/", function() {
 
-		\Illuminate\Support\Facades\Session::flush();
+		$configuration = new GameConfigurations();
 
-		$configuration = new GameConfirgurations();
+		/**
+		 * Load all the games saved
+		 */
 		$game = $configuration->load();
 
 		return Response::json( $game );
@@ -37,15 +42,27 @@ Route::group( [ "prefix" => "hangman" ], function() {
 	 * POST - Start new Game
 	 * --------------------------------------------------------------
 	 *
-	 * This Route will generate a new game and save it in session
+	 * This Route will generate a new game and save it in session.
 	 *
 	 */
     Route::post( "/", function() {
 
 		$word = new Word();
-		$configuration = new GameConfirgurations();
+		$configuration = new GameConfigurations();
 
+		/**
+		 * Create a new Game with the index of the word chosen randomly.
+		 */
 		$game = $configuration->newGame( $word->getIndex() );
+
+		/**
+		 * Set the word in the Game for some basic configurations
+		 */
+		$game->setWord( $word->getWordByIndex( $game->getId() ) );
+
+		/**
+		 * Save the Game
+		 */
 		$configuration->generateSessionNameWithIndex( $game->getId() )->save( $game );
 
 		return Response::json( $game->apiResponse() );
@@ -64,7 +81,7 @@ Route::group( [ "prefix" => "hangman" ], function() {
     Route::get( "/{id}", function( $id ) {
 
 		$word = new Word();
-		$configuration = new GameConfirgurations();
+		$configuration = new GameConfigurations();
 
 		$game = $configuration->generateSessionNameWithIndex( $id )->load();
 
@@ -115,7 +132,7 @@ Route::group( [ "prefix" => "hangman" ], function() {
 		/**
 		 * Get the POST parameter - char
 		 */
-		$op = \Illuminate\Support\Facades\Input::get( "char" );
+		$op = Input::get( "char" );
 
 		/**
 		 * Check if the value that came from POST are not null, empty
@@ -127,7 +144,7 @@ Route::group( [ "prefix" => "hangman" ], function() {
 		}
 
 		$word = new Word();
-		$configuration = new GameConfirgurations();
+		$configuration = new GameConfigurations();
 
 		/**
 		 * Load the game saved
@@ -147,9 +164,6 @@ Route::group( [ "prefix" => "hangman" ], function() {
 		 * Set the word for check from the index that came as parameter
 		 */
 		$game->setWord( $word->getWordByIndex( $game->getId() ) );
-		$configuration->save( $game );
-
-		dd( $game->getWordLetters() );
 
 		/**
 		 * If the player has tries left, the API will check the letter,
@@ -160,7 +174,12 @@ Route::group( [ "prefix" => "hangman" ], function() {
 			/**
 			 * Check the letter that the player guessed
 			 */
-			$game->checkLetter( $op );
+			$checkLetterReturn = $game->checkLetter( $op );
+
+			if( !is_bool( $checkLetterReturn ) )
+			{
+				return Response::json( [ "status" => 400, "error_code" => "HAN08", "message" => $checkLetterReturn ] );
+			}
 
 			/**
 			 * Save the new result in session
@@ -175,5 +194,84 @@ Route::group( [ "prefix" => "hangman" ], function() {
 		return Response::json( [ "status" => 200 ] );
 
     } );
+
+	/*
+	 * --------------------------------------------------------------
+	 * GET - Reset Game
+	 * --------------------------------------------------------------
+	 *
+	 * This Route will reset a saved Game to the default values.
+	 *
+	 */
+	Route::get( "/reset/{id}", function( $id ) {
+
+		$configuration = new GameConfigurations();
+
+		/**
+		 * Load the game saved
+		 */
+		$game = $configuration->generateSessionNameWithIndex( $id )->load();
+
+		/**
+		 * Check if the game has been loaded correctly or if the player
+		 * is not trying to access this ROUTE before generate a new Game
+		 */
+		if( is_null( $game ) )
+		{
+			return Response::json( [ "status" => 400, "error_code" => "HAN01", "message" => "Game not found" ] );
+		}
+
+		/**
+		 * Reset the Game to the default values
+		 */
+		$configuration->reset();
+
+		return Response::json( [ "status" => 200, "success_code" => "HAN07", "message" => "Game was reset." ] );
+
+	} );
+
+	/*
+	 * --------------------------------------------------------------
+	 * GET - Delete Game saved
+	 * --------------------------------------------------------------
+	 *
+	 * This Route will delete a saved Game.
+	 *
+	 */
+	Route::get( "/delete/{id}", function( $id ) {
+
+		$configuration = new GameConfigurations();
+
+		/**
+		 * Load the game saved
+		 */
+		$game = $configuration->generateSessionNameWithIndex( $id )->load();
+
+		/**
+		 * Check if the game has been loaded correctly or if the player
+		 * is not trying to access this ROUTE before generate a new Game
+		 */
+		if( is_null( $game ) )
+		{
+			return Response::json( [ "status" => 400, "error_code" => "HAN01", "message" => "Game not found" ] );
+		}
+
+		/**
+		 * Reset the Game to the default values
+		 */
+		$configuration->delete();
+
+		return Response::json( [ "status" => 200, "success_code" => "HAN07", "message" => "Game was reset." ] );
+
+	} );
+
+	Route::delete( "/delete", function() {
+
+		$configuration = new GameConfigurations();
+		$configuration->deleteAll();
+
+		return Response::json( [ "status" => 200, "success_code" => "HAN09", "message" => "All Games saved were deleted." ] );
+
+	} );
 
 } );

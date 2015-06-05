@@ -1,6 +1,4 @@
-<?php
-
-namespace Hangman;
+<?php namespace Hangman;
 
 class Game
 {
@@ -14,6 +12,7 @@ class Game
     public $triesLeft;
 	public $triedLetters = [];
 	public $foundLetters = [];
+	private $foundLettersHelper = [];
 	public $foundString;
 	public $status;
 	private $statusInformation = [ "busy", "fail", "success" ];
@@ -27,8 +26,9 @@ class Game
 	 * @param array $foundLetters - array of words that the player has guessed
 	 * @param string $foundString - string with the format of dots for the words not guessed yet
 	 * @param int $status - status of the game
+	 * @param array $foundLettersHelper - helper for the foundLetters
 	 */
-    public function __construct( $id, $triesLeft = self::TRIES, array $triedLeft = [], array $foundLetters = [], $foundString = "", $status = self::BUSY )
+    public function __construct( $id, $triesLeft = self::TRIES, array $triedLeft = [], array $foundLetters = [], $foundString = "", $status = self::BUSY, $foundLettersHelper = [] )
     {
 		$this->id = $id;
         $this->triesLeft = $triesLeft;
@@ -36,6 +36,7 @@ class Game
         $this->foundLetters = $foundLetters;
 		$this->foundString = $foundString;
 		$this->status = $status;
+		$this->foundLettersHelper = $foundLettersHelper;
 
 		$this->generateWithDotsWord();
     }
@@ -54,6 +55,7 @@ class Game
             "found_letters" => $this->foundLetters,
 			"found_string" => $this->restoreFoundedToString(),
 			"status" => $this->status,
+			"found_letters_helper" => $this->foundLettersHelper,
         ];
     }
 
@@ -77,7 +79,7 @@ class Game
 	 * Check if the letter that came from POST matches with the word
 	 * in Game
 	 *
-	 * @param char $letter - letter inserted by the player
+	 * @param string $letter - letter inserted by the player
 	 * @return bool
 	 */
     public function checkLetter( $letter )
@@ -93,8 +95,13 @@ class Game
 		 */
         if( 0 == preg_match( "/^[a-z]$/", $letter ) )
         {
-
+			return sprintf( "The values accepted are [a-z] - `%s` given.", $letter );
         }
+
+		if( $this->hasWon() || $this->hasHanged() )
+		{
+			return false;
+		}
 
 		/*
 		 * If the letter guessed exists in the word,
@@ -103,19 +110,12 @@ class Game
 		 */
         if( false !== strpos( $this->word, $letter ) )
         {
-			$this->generateTheFoundLetter( $letter );
+			$this->generateFoundLetter( $letter );
 
 			return true;
         }
 
-		/*
-		 * Check if the letter guessed is not already in
-		 * the tried list
-		 */
-		if( !in_array( $letter, $this->triedLetters ) )
-		{
-			$this->triedLetters[] = $letter;
-		}
+		$this->triedLetter( $letter );
 
 		/*
 		 * Remove one try from the player
@@ -199,7 +199,7 @@ class Game
 
 	public function setStatus( $status )
 	{
-		$this->status( $status );
+		$this->status = $status;
 	}
 
 	/**
@@ -209,6 +209,7 @@ class Game
 	 */
 	public function hasWon()
 	{
+		dump( count( array_diff( $this->getWordLetters(), $this->foundLetters ) ) );
 		if( 0 === count( array_diff( $this->getWordLetters(), $this->foundLetters ) ) )
 		{
 			$this->setStatus( self::SUCCESS );
@@ -237,38 +238,46 @@ class Game
 	}
 
 	/**
-	 * Check if the letter is already in the list of found letters
+	 * Check if the letter guessed is not already in the tried list
 	 *
-	 * @param char $letter
+	 * @param string $letter
 	 * @return bool
 	 */
-	private function isLetterFounded( $letter )
+	private function triedLetter( $letter )
 	{
-		return in_array( $letter, $this->foundLetters );
+		if( !in_array( $letter, $this->triedLetters ) )
+		{
+			$this->triedLetters[] = $letter;
+		}
 	}
 
 	/**
 	 * Add to the list of found letter in the correct id
 	 *
-	 * @param char $letter
+	 * @param string $letter
 	 */
-	private function generateTheFoundLetter( $letter )
+	private function generateFoundLetter( $letter )
 	{
 		if( !in_array( $letter, $this->triedLetters ) )
 		{
 			foreach( $this->getWordLetters() as $key => $val )
 			{
-				if( ( $this->getWordLetters()[ $key ] == $letter ) && !$this->isLetterFounded( $letter ) )
+				if( ( $this->getWordLetters()[ $key ] == $letter ) )
 				{
-					$this->foundLetters[ $key ] = $letter;
+					$this->foundLetters[ $key ] = $this->foundLettersHelper[ $key ] = $letter;
 				}
 			}
 
 			$this->generateWithDotsWord();
 		}
 
-		$this->triedLetters[] = $letter;
-		$this->triesLeft--;
+		/**
+		 * Check if the player has won or was hanged
+		 */
+		$this->hasWon();
+		$this->hasHanged();
+
+		$this->triedLetter( $letter );
 	}
 
 	/**
@@ -278,9 +287,9 @@ class Game
 	{
 		foreach( $this->getWordLetters() as $key => $val )
 		{
-			if( !isset( $this->foundLetters[ $key ] ) )
+			if( !isset( $this->foundLettersHelper[ $key ] ) )
 			{
-				$this->foundLetters[ $key ] = ".";
+				$this->foundLettersHelper[ $key ] = ".";
 			}
 		}
 	}
@@ -292,8 +301,8 @@ class Game
 	 */
 	private function restoreFoundedToString()
 	{
-		ksort( $this->foundLetters );
+		ksort( $this->foundLettersHelper );
 
-		return $this->foundString = implode( "", $this->foundLetters );
+		return $this->foundString = implode( "", $this->foundLettersHelper );
 	}
 }
