@@ -16,6 +16,8 @@ Install composer dependency
 composer install
 ```
 
+## Usage
+
 To get a overview of all Games
 ```
 GET - localhost/hangman/hangman
