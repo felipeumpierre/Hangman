@@ -209,7 +209,6 @@ class Game
 	 */
 	public function hasWon()
 	{
-		dump( count( array_diff( $this->getWordLetters(), $this->foundLetters ) ) );
 		if( 0 === count( array_diff( $this->getWordLetters(), $this->foundLetters ) ) )
 		{
 			$this->setStatus( self::SUCCESS );
