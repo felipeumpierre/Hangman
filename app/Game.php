@@ -80,7 +80,7 @@ class Game
 	 * in Game
 	 *
 	 * @param string $letter - letter inserted by the player
-	 * @return bool
+	 * @return bool|string
 	 */
     public function checkLetter( $letter )
     {

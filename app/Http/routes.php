@@ -14,7 +14,7 @@ use Illuminate\Support\Facades\Input;
  * API ROUTE
  * --------------------------------------------------------------
  */
-Route::group( [ "prefix" => "hangman" ], function() {
+Route::group( [ "prefix" => "games" ], function() {
 
 	/*
 	 * --------------------------------------------------------------
@@ -265,7 +265,7 @@ Route::group( [ "prefix" => "hangman" ], function() {
 
 	} );
 
-	Route::delete( "/delete", function() {
+	Route::get( "/delete/all", function() {
 
 		$configuration = new GameConfigurations();
 		$configuration->deleteAll();

@@ -22,35 +22,35 @@ To optimize laravel, run ```php artisan optimize``` on the root of the project
 
 To get a overview of all Games
 ```
-GET - localhost/hangman/hangman
+GET - localhost/hangman/games
 ```
 
 To create a new Game
 ```
-POST - localhost/hangman/hangman
+POST - localhost/hangman/games
 ```
 
 To guess a letter
 ```
-POST - localhost/hangman/hangman/{id}
+POST - localhost/hangman/games/{id}
 ```
 
 To check status of the Game, such as found letters, tries left, tried letters and status
 ```
-GET - localhost/hangman/hangman/{id}
+GET - localhost/hangman/games/{id}
 ```
 
 To reset a Game
 ```
-GET - localhost/hangman/hangman/reset/{id}
+GET - localhost/hangman/games/reset/{id}
 ```
 
 To delete a Game
 ```
-GET - localhost/hangman/hangman/delete/{id}
+GET - localhost/hangman/games/delete/{id}
 ```
 
 To delete all Games saved
 ```
-DELETE - localhost/hangman/hangman/delete
+GET - localhost/hangman/games/delete/all
 ```
